@@ -1,22 +1,17 @@
 import { Board } from './board';
-import { Cell } from './cell';
-import { AliveState, DeadState } from './state.interface';
+import { AliveState } from './state.interface';
 import { TerminalRenderer } from './renderer';
 import { Simulation } from './simulation';
 
 function createSeededBoard(rows: number, cols: number): Board {
-  const grid: Cell[][] = Array.from({ length: rows }, () =>
-    Array.from({ length: cols }, () => new Cell(new DeadState()))
-  );
-
   const midR = Math.floor(rows / 2);
   const midC = Math.floor(cols / 2);
+  const alive = new AliveState();
 
-  grid[midR - 1][midC] = new Cell(new AliveState());
-  grid[midR][midC] = new Cell(new AliveState());
-  grid[midR + 1][midC] = new Cell(new AliveState());
-
-  return new Board(grid);
+  return Board.empty(rows, cols)
+    .withCellState(midR - 1, midC, alive)
+    .withCellState(midR, midC, alive)
+    .withCellState(midR + 1, midC, alive);
 }
 
 const board = createSeededBoard(25, 25);

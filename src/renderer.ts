@@ -4,8 +4,8 @@ import { CellStateList } from './state.interface';
 export type CellTheme = Record<CellStateList, string>;
 
 const DEFAULT_THEME: CellTheme = {
-  [CellStateList.Alive]: 'H',
-  [CellStateList.Dead]: '·',
+  [CellStateList.Alive]: '?¿',
+  [CellStateList.Dead]: '··',
 };
 
 export class TerminalRenderer {

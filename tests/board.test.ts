@@ -108,3 +108,82 @@ describe('Board', () => {
     expect(board.grid[1][1].isAlive()).toBe(true);
   });
 });
+
+describe('Board dimensions and access', () => {
+  it('creates an empty board with the given dimensions', () => {
+    const board = Board.empty(3, 2); // 3 rows, 2 cols
+
+    expect(board.height).toBe(3);
+    expect(board.width).toBe(2);
+    expect(board.getCell(2, 1).isAlive()).toBe(false);
+  });
+
+  it('validates coordinates when getting a cell', () => {
+    const board = Board.empty(2, 4); // valid rows: 0..1, cols: 0..3
+
+    expect(() => board.getCell(-1, 0)).toThrow('Coordinates (-1, 0) are out of bounds');
+    expect(() => board.getCell(2, 0)).toThrow('Coordinates (2, 0) are out of bounds');
+    expect(() => board.getCell(0, 4)).toThrow('Coordinates (0, 4) are out of bounds');
+  });
+});
+
+describe('Board.withCellState', () => {
+  it('returns a new board with only the requested cell changed', () => {
+    const board = Board.empty(3, 3);
+
+    const next = board.withCellState(1, 1, new AliveState());
+
+    expect(next.getCell(1, 1).isAlive()).toBe(true);
+    expect(board.getCell(1, 1).isAlive()).toBe(false);
+    expect(next.getCell(0, 0).isAlive()).toBe(false);
+  });
+
+  it('validates coordinates when changing a cell', () => {
+    const board = Board.empty(2, 4);
+
+    expect(() => board.withCellState(0, 4, new AliveState())).toThrow(
+      'Coordinates (0, 4) are out of bounds'
+    );
+  });
+});
+
+describe('Board neighbor counting', () => {
+  it('returns 0 live neighbors on an empty board', () => {
+    expect(Board.empty(3, 3).countLiveNeighbors(1, 1)).toBe(0);
+  });
+
+  it('counts live neighbors among all 8 surrounding cells without counting the cell itself', () => {
+    const board = Board.empty(3, 3)
+      .withCellState(0, 0, new AliveState())
+      .withCellState(0, 1, new AliveState())
+      .withCellState(2, 2, new AliveState())
+      .withCellState(1, 1, new AliveState());
+
+    expect(board.countLiveNeighbors(1, 1)).toBe(3);
+  });
+
+  it('safely handles corner and edge cells without going out of bounds', () => {
+    const board = Board.empty(3, 3)
+      .withCellState(0, 1, new AliveState())
+      .withCellState(1, 0, new AliveState());
+
+    expect(board.countLiveNeighbors(0, 0)).toBe(2);
+  });
+});
+
+describe('Board.nextGeneration', () => {
+  it('evolves all cells simultaneously using a horizontal line', () => {
+    const board = Board.empty(3, 3)
+      .withCellState(1, 0, new AliveState())
+      .withCellState(1, 1, new AliveState())
+      .withCellState(1, 2, new AliveState());
+
+    const next = board.nextGeneration();
+
+    expect(next.getCell(0, 1).isAlive()).toBe(true);
+    expect(next.getCell(1, 1).isAlive()).toBe(true);
+    expect(next.getCell(2, 1).isAlive()).toBe(true);
+    expect(next.getCell(1, 0).isAlive()).toBe(false);
+    expect(next.getCell(1, 2).isAlive()).toBe(false);
+  });
+});

@@ -35,7 +35,7 @@ describe('TerminalRenderer', () => {
     expect(writeSpy).toHaveBeenCalledWith('\x1b[?25h\n');
   });
 
-  it('renders a 2x2 grid with default block characters and borders', () => {
+  it('renders a 2x2 grid with the default ?¿ and ·· theme and borders', () => {
     const renderer = new TerminalRenderer();
     const grid: Cell[][] = [
       [new Cell(new AliveState()), new Cell(new DeadState())],
@@ -47,8 +47,8 @@ describe('TerminalRenderer', () => {
     const expectedOutput = [
       '\x1b[HGeneration: 42 | Press Ctrl+C to exit',
       '┌────┐',
-      '│██  │',
-      '│  ██│',
+      '│?¿··│',
+      '│··?¿│',
       '└────┘',
       '', // trailing newline
     ].join('\n');

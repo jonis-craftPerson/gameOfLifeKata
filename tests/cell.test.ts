@@ -31,8 +31,38 @@ describe('Cell', () => {
 
     expect(cell.isAlive()).toBe(false);
   });
+});
 
+describe('Cell evolution rules', () => {
+  it.each([0, 1])('dies from underpopulation when alive with %i live neighbors', (neighbors) => {
+    const cell = new Cell(new AliveState());
 
+    expect(cell.evolve(neighbors).isAlive()).toBe(false);
+  });
+
+  it.each([2, 3])('survives when alive with %i live neighbors', (neighbors) => {
+    const cell = new Cell(new AliveState());
+
+    expect(cell.evolve(neighbors).isAlive()).toBe(true);
+  });
+
+  it.each([4, 5, 6, 7, 8])('dies from overpopulation when alive with %i live neighbors', (neighbors) => {
+    const cell = new Cell(new AliveState());
+
+    expect(cell.evolve(neighbors).isAlive()).toBe(false);
+  });
+
+  it.each([2, 3])('becomes alive when dead with %i live neighbors', (neighbors) => {
+    const cell = new Cell(new DeadState());
+
+    expect(cell.evolve(neighbors).isAlive()).toBe(true);
+  });
+
+  it.each([0, 1, 4, 5, 6, 7, 8])('stays dead when dead with %i live neighbors', (neighbors) => {
+    const cell = new Cell(new DeadState());
+
+    expect(cell.evolve(neighbors).isAlive()).toBe(false);
+  });
 });
 
 

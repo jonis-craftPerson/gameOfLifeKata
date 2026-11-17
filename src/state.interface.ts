@@ -1,46 +1,27 @@
 export enum CellStateList {
-    Dead = 'DEAD',
-    Alive = 'ALIVE',
+  Dead = 'DEAD',
+  Alive = 'ALIVE',
 }
 
+export type CellStateValue = CellStateList | (string & {});
+
 export interface CellState {
-    readonly value: CellStateList;
-    isAlive(): boolean;
-    toggle(): CellState;
-    evolve(liveNeighbors: number): CellState;
+  readonly value: CellStateValue;
+  isAlive(): boolean;
 }
 
 export class AliveState implements CellState {
-    public readonly value = CellStateList.Alive;
+  public readonly value = CellStateList.Alive;
 
-    public isAlive(): boolean {
-        return true;
-    }
-
-    public toggle(): CellState {
-        return new DeadState();
-    }
-
-    public evolve(liveNeighbors: number): CellState {
-        return liveNeighbors === 2 || liveNeighbors === 3
-            ? this
-            : new DeadState();
-    }
+  public isAlive(): boolean {
+    return true;
+  }
 }
 
 export class DeadState implements CellState {
+  public readonly value = CellStateList.Dead;
 
-    public readonly value = CellStateList.Dead;
-    
-    public isAlive(): boolean {
-        return false;
-    }
-
-    public toggle(): CellState {
-        return new AliveState();
-    }
-
-    public evolve(liveNeighbors: number): CellState {
-        return liveNeighbors === 2 || liveNeighbors === 3 ? new AliveState() : this;
-    }
+  public isAlive(): boolean {
+    return false;
+  }
 }

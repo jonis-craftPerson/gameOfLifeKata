@@ -1,27 +1,26 @@
-import {
-  AliveState,
-  CellState,
-  CellStateList
-} from './state.interface';
+import { standardRules } from './default-rules';
+import { Rules } from './rules.interface';
+import { AliveState, CellState, CellStateValue } from './state.interface';
 
 export class Cell {
+  constructor(
+    private currentState: CellState = new AliveState(),
+    private readonly rules: Rules = standardRules
+  ) {}
 
-  constructor(private currentState: CellState = new AliveState()) { }
-
-   public get state(): CellStateList {
+  public get state(): CellStateValue {
     return this.currentState.value;
   }
-
 
   public isAlive(): boolean {
     return this.currentState.isAlive();
   }
 
   public changeState(): void {
-    this.currentState = this.currentState.toggle();
+    this.currentState = this.rules.toggle(this.currentState);
   }
 
   public evolve(liveNeighbors: number): Cell {
-    return new Cell(this.currentState.evolve(liveNeighbors));
+    return new Cell(this.rules.evolve(this.currentState, liveNeighbors), this.rules);
   }
 }

@@ -1,8 +1,8 @@
 import { Cell } from './cell';
 import { GridFormatter } from './formatter.interface';
-import { CellStateList } from './state.interface';
+import { CellStateList, CellStateValue } from './state.interface';
 
-export type CellTheme = Record<CellStateList, string>;
+export type CellTheme = Record<CellStateValue, string>;
 
 export const DEFAULT_THEME: CellTheme = {
   [CellStateList.Alive]: '?¿',

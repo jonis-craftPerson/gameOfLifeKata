@@ -1,37 +1,68 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 
 import { Board } from '../src/board';
-import { TerminalRenderer } from '../src/renderer';
+import { Clock, Subscription } from '../src/clock.interface';
+import { Renderer } from '../src/renderer.interface';
 import { Simulation } from '../src/simulation';
 
-describe('Simulation wiring', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
+class FakeClock implements Clock {
+  private subscriptions: Array<{ callback: () => void; active: boolean }> = [];
 
+  public every(_intervalMs: number, callback: () => void): Subscription {
+    const entry = { callback, active: true };
+    this.subscriptions.push(entry);
+    return { cancel: () => { entry.active = false; } };
+  }
+
+  public tick(): void {
+    for (const subscription of this.subscriptions) {
+      if (subscription.active) subscription.callback();
+    }
+  }
+
+  public get activeCount(): number {
+    return this.subscriptions.filter(subscription => subscription.active).length;
+  }
+}
+
+class SpyRenderer implements Renderer {
+  public init = vi.fn();
+  public render = vi.fn();
+  public cleanup = vi.fn();
+}
+
+describe('Simulation wiring', () => {
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
   it('initializes the renderer and renders generation 0 immediately on start', () => {
     const board = Board.empty(3, 3);
-    const renderer = new TerminalRenderer();
+    const renderer = new SpyRenderer();
+    const sim = new Simulation(board, renderer, new FakeClock(), 200);
 
-    const initSpy = vi.spyOn(renderer, 'init').mockImplementation(() => {});
-    const renderSpy = vi.spyOn(renderer, 'render').mockImplementation(() => {});
-
-    const sim = new Simulation(board, renderer, 200);
     sim.start();
 
-    expect(initSpy).toHaveBeenCalledOnce();
-    expect(renderSpy).toHaveBeenCalledOnce();
-    expect(renderSpy).toHaveBeenCalledWith(board.grid, 0);
+    expect(renderer.init).toHaveBeenCalledOnce();
+    expect(renderer.render).toHaveBeenCalledOnce();
+    expect(renderer.render).toHaveBeenCalledWith(board.grid, 0);
 
     sim.stop();
   });
 
-  it('advances generations and renders updated boards on each interval tick', () => {
+  it('schedules ticks at the injected interval', () => {
+    const clock = new FakeClock();
+    const everySpy = vi.spyOn(clock, 'every');
+    const sim = new Simulation(Board.empty(3, 3), new SpyRenderer(), clock, 250);
+
+    sim.start();
+
+    expect(everySpy).toHaveBeenCalledWith(250, expect.any(Function));
+
+    sim.stop();
+  });
+
+  it('advances generations and renders updated boards on each tick', () => {
     const initialBoard = Board.empty(3, 3);
     const gen1Board = Board.empty(3, 3);
     const gen2Board = Board.empty(3, 3);
@@ -41,40 +72,33 @@ describe('Simulation wiring', () => {
       .mockReturnValue(gen1Board);
     vi.spyOn(gen1Board, 'nextGeneration').mockReturnValue(gen2Board);
 
-    const renderer = new TerminalRenderer();
-    vi.spyOn(renderer, 'init').mockImplementation(() => {});
-    const renderSpy = vi.spyOn(renderer, 'render').mockImplementation(() => {});
+    const renderer = new SpyRenderer();
+    const clock = new FakeClock();
+    const sim = new Simulation(initialBoard, renderer, clock, 200);
 
-    const sim = new Simulation(initialBoard, renderer, 200);
     sim.start();
 
-    // Advance 200ms -> Generation 1
-    vi.advanceTimersByTime(200);
+    clock.tick();
     expect(nextGenSpy).toHaveBeenCalledOnce();
-    expect(renderSpy).toHaveBeenNthCalledWith(2, gen1Board.grid, 1);
+    expect(renderer.render).toHaveBeenNthCalledWith(2, gen1Board.grid, 1);
 
-    // Advance another 200ms -> Generation 2
-    vi.advanceTimersByTime(200);
-    expect(renderSpy).toHaveBeenNthCalledWith(3, gen2Board.grid, 2);
+    clock.tick();
+    expect(renderer.render).toHaveBeenNthCalledWith(3, gen2Board.grid, 2);
 
     sim.stop();
   });
 
-  it('stops advancing and cleans up the renderer when stopped', () => {
-    const board = Board.empty(3, 3);
-    const renderer = new TerminalRenderer();
+  it('stops ticking and cleans up the renderer when stopped', () => {
+    const renderer = new SpyRenderer();
+    const clock = new FakeClock();
+    const sim = new Simulation(Board.empty(3, 3), renderer, clock, 200);
 
-    vi.spyOn(renderer, 'init').mockImplementation(() => {});
-    const renderSpy = vi.spyOn(renderer, 'render').mockImplementation(() => {});
-    const cleanupSpy = vi.spyOn(renderer, 'cleanup').mockImplementation(() => {});
-
-    const sim = new Simulation(board, renderer, 200);
     sim.start();
     sim.stop();
+    clock.tick();
 
-    vi.advanceTimersByTime(1000);
-
-    expect(cleanupSpy).toHaveBeenCalledOnce();
-    expect(renderSpy).toHaveBeenCalledOnce(); // Only generation 0 before stop()
+    expect(renderer.cleanup).toHaveBeenCalledOnce();
+    expect(renderer.render).toHaveBeenCalledOnce();
+    expect(clock.activeCount).toBe(0);
   });
 });

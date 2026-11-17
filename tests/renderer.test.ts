@@ -1,97 +1,85 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Cell } from '../src/cell';
-import { TerminalRenderer, CellTheme } from '../src/renderer';
-import { AliveState, DeadState, CellStateList } from '../src/state.interface';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import process from 'process';
 
+import { Cell } from '../src/cell';
+import { AsciiGridFormatter } from '../src/formatter';
+import { GridFormatter } from '../src/formatter.interface';
+import { TerminalRenderer } from '../src/renderer';
+import { AliveState, DeadState } from '../src/state.interface';
+import { OutputWriter } from '../src/writer.interface';
+
+class SpyWriter implements OutputWriter {
+  public write = vi.fn();
+}
+
+function cellGrid(pattern: string[]): Cell[][] {
+  return pattern.map(row =>
+    row.split('').map(char =>
+      new Cell(char === '#' ? new AliveState() : new DeadState())
+    )
+  );
+}
 
 describe('TerminalRenderer', () => {
-  let writeSpy: ReturnType<typeof vi.spyOn>;
-
-  beforeEach(() => {
-    // Intercept stdout writes so tests don't clear or draw on the real terminal
-    writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('hides the cursor and clears the screen on init', () => {
-    const renderer = new TerminalRenderer();
+  it('writes the terminal init sequence through the injected writer', () => {
+    const writer = new SpyWriter();
 
-    renderer.init();
+    new TerminalRenderer(new AsciiGridFormatter(), writer).init();
 
-    expect(writeSpy).toHaveBeenCalledOnce();
-    expect(writeSpy).toHaveBeenCalledWith('\x1b[?25l\x1b[2J');
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(writer.write).toHaveBeenCalledWith('\x1b[?25l\x1b[2J');
   });
 
-  it('restores cursor visibility on cleanup', () => {
-    const renderer = new TerminalRenderer();
+  it('writes the cursor-restore sequence on cleanup', () => {
+    const writer = new SpyWriter();
 
-    renderer.cleanup();
+    new TerminalRenderer(new AsciiGridFormatter(), writer).cleanup();
 
-    expect(writeSpy).toHaveBeenCalledOnce();
-    expect(writeSpy).toHaveBeenCalledWith('\x1b[?25h\n');
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(writer.write).toHaveBeenCalledWith('\x1b[?25h\n');
   });
 
-  it('renders a 2x2 grid with the default ?¿ and ·· theme and borders', () => {
-    const renderer = new TerminalRenderer();
-    const grid: Cell[][] = [
-      [new Cell(new AliveState()), new Cell(new DeadState())],
-      [new Cell(new DeadState()), new Cell(new AliveState())],
-    ];
+  it('writes cursor home followed by the formatter output', () => {
+    const formatter: GridFormatter = { format: vi.fn(() => 'FRAME') };
+    const writer = new SpyWriter();
+    const grid = cellGrid(['#']);
 
-    renderer.render(grid, 42);
+    new TerminalRenderer(formatter, writer).render(grid, 3);
 
-    const expectedOutput = [
+    expect(formatter.format).toHaveBeenCalledWith(grid, 3);
+    expect(writer.write).toHaveBeenCalledOnce();
+    expect(writer.write).toHaveBeenCalledWith('\x1b[HFRAME');
+  });
+
+  it('produces the full frame with the default formatter', () => {
+    const writer = new SpyWriter();
+
+    new TerminalRenderer(new AsciiGridFormatter(), writer).render(cellGrid(['#.', '.#']), 42);
+
+    expect(writer.write).toHaveBeenCalledWith([
       '\x1b[HGeneration: 42 | Press Ctrl+C to exit',
       '┌────┐',
       '│?¿··│',
       '│··?¿│',
       '└────┘',
-      '', // trailing newline
-    ].join('\n');
-
-    expect(writeSpy).toHaveBeenCalledOnce();
-    expect(writeSpy).toHaveBeenCalledWith(expectedOutput);
+      '',
+    ].join('\n'));
   });
 
-  it('renders using a custom CellTheme when injected', () => {
-    const customTheme: CellTheme = {
-      [CellStateList.Alive]: 'O ',
-      [CellStateList.Dead]: '. ',
-    };
-    const renderer = new TerminalRenderer(customTheme);
-    const grid: Cell[][] = [
-      [new Cell(new AliveState()), new Cell(new DeadState())],
-    ];
+  it('does not write directly to stdout', () => {
+    const writeSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    const writer = new SpyWriter();
+    const renderer = new TerminalRenderer(new AsciiGridFormatter(), writer);
 
-    renderer.render(grid, 1);
+    renderer.init();
+    renderer.render(cellGrid(['#']), 0);
+    renderer.cleanup();
 
-    const expectedOutput = [
-      '\x1b[HGeneration: 1 | Press Ctrl+C to exit',
-      '┌────┐',
-      '│O . │',
-      '└────┘',
-      '',
-    ].join('\n');
-
-    expect(writeSpy).toHaveBeenCalledWith(expectedOutput);
-  });
-
-  it('handles an empty grid gracefully', () => {
-    const renderer = new TerminalRenderer();
-
-    renderer.render([], 0);
-
-    const expectedOutput = [
-      '\x1b[HGeneration: 0 | Press Ctrl+C to exit',
-      '┌┐',
-      '└┘',
-      '',
-    ].join('\n');
-
-    expect(writeSpy).toHaveBeenCalledWith(expectedOutput);
+    expect(writeSpy).not.toHaveBeenCalled();
+    expect(writer.write).toHaveBeenCalledTimes(3);
   });
 });

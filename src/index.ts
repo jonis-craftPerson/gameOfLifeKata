@@ -1,6 +1,9 @@
 import { Board } from './board';
+import { NodeClock } from './clock';
+import { AsciiGridFormatter } from './formatter';
 import { AliveState } from './state.interface';
 import { TerminalRenderer } from './renderer';
+import { StdoutWriter } from './stdout-writer';
 import { Simulation } from './simulation';
 
 function createSeededBoard(rows: number, cols: number): Board {
@@ -15,8 +18,8 @@ function createSeededBoard(rows: number, cols: number): Board {
 }
 
 const board = createSeededBoard(25, 25);
-const renderer = new TerminalRenderer();
-const simulation = new Simulation(board, renderer, 200);
+const renderer = new TerminalRenderer(new AsciiGridFormatter(), new StdoutWriter());
+const simulation = new Simulation(board, renderer, new NodeClock(), 200);
 
 simulation.start();
 

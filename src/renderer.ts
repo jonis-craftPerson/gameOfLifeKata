@@ -1,36 +1,29 @@
 import { Cell } from './cell';
-import { CellStateList } from './state.interface';
+import { AsciiGridFormatter } from './formatter';
+import { GridFormatter } from './formatter.interface';
+import { Renderer } from './renderer.interface';
+import { OutputWriter } from './writer.interface';
+import { StdoutWriter } from './stdout-writer';
 
-export type CellTheme = Record<CellStateList, string>;
+const HIDE_CURSOR_AND_CLEAR = '\x1b[?25l\x1b[2J';
+const SHOW_CURSOR = '\x1b[?25h\n';
+const CURSOR_HOME = '\x1b[H';
 
-const DEFAULT_THEME: CellTheme = {
-  [CellStateList.Alive]: '?¿',
-  [CellStateList.Dead]: '··',
-};
-
-export class TerminalRenderer {
-  constructor(private readonly theme: CellTheme = DEFAULT_THEME) {}
+export class TerminalRenderer implements Renderer {
+  constructor(
+    private readonly formatter: GridFormatter = new AsciiGridFormatter(),
+    private readonly writer: OutputWriter = new StdoutWriter()
+  ) {}
 
   public init(): void {
-    process.stdout.write('\x1b[?25l\x1b[2J');
+    this.writer.write(HIDE_CURSOR_AND_CLEAR);
   }
 
   public render(grid: Cell[][], generation: number): void {
-    const width = grid[0]?.length ?? 0;
-    let output = '\x1b[H';
-    output += `Generation: ${generation} | Press Ctrl+C to exit\n`;
-    output += '┌' + '──'.repeat(width) + '┐\n';
-
-    for (const row of grid) {
-      const line = row.map(cell => this.theme[cell.state]).join('');
-      output += `│${line}│\n`;
-    }
-
-    output += '└' + '──'.repeat(width) + '┘\n';
-    process.stdout.write(output);
+    this.writer.write(CURSOR_HOME + this.formatter.format(grid, generation));
   }
 
   public cleanup(): void {
-    process.stdout.write('\x1b[?25h\n');
+    this.writer.write(SHOW_CURSOR);
   }
 }

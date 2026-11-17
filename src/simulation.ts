@@ -1,31 +1,31 @@
 import { Board } from './board';
-import { TerminalRenderer } from './renderer';
+import { Clock, Subscription } from './clock.interface';
+import { Renderer } from './renderer.interface';
 
 export class Simulation {
-  private timer: NodeJS.Timeout | null = null;
+  private subscription: Subscription | null = null;
   private generation = 0;
 
   constructor(
     private board: Board,
-    private readonly renderer: TerminalRenderer,
+    private readonly renderer: Renderer,
+    private readonly clock: Clock,
     private readonly intervalMs: number = 200
   ) {}
 
   public start(): void {
-    if (this.timer) return;
+    if (this.subscription) return;
 
     this.renderer.init();
     this.tick();
 
-    this.timer = setInterval(() => {
-      this.tick();
-    }, this.intervalMs);
+    this.subscription = this.clock.every(this.intervalMs, () => this.tick());
   }
 
   public stop(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    if (this.subscription) {
+      this.subscription.cancel();
+      this.subscription = null;
     }
     this.renderer.cleanup();
   }

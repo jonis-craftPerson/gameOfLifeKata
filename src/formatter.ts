@@ -1,4 +1,4 @@
-import { Cell } from './cell';
+import { CellGrid } from './cell';
 import { GridFormatter } from './formatter.interface';
 import { CellStateList, CellStateValue } from './state.interface';
 
@@ -12,7 +12,7 @@ export const DEFAULT_THEME: CellTheme = {
 export class AsciiGridFormatter implements GridFormatter {
   constructor(private readonly theme: CellTheme = DEFAULT_THEME) {}
 
-  public format(grid: Cell[][], generation: number): string {
+  public format(grid: CellGrid, generation: number): string {
     const width = grid[0]?.length ?? 0;
     let output = `Generation: ${generation} | Press Ctrl+C to exit\n`;
     output += '┌' + '──'.repeat(width) + '┐\n';

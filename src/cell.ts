@@ -2,6 +2,8 @@ import { standardRules } from './default-rules';
 import { Rules } from './rules.interface';
 import { AliveState, CellState, CellStateValue } from './state.interface';
 
+export type CellGrid = ReadonlyArray<ReadonlyArray<Cell>>;
+
 export class Cell {
   constructor(
     private currentState: CellState = new AliveState(),

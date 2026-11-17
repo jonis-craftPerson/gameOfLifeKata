@@ -1,15 +1,23 @@
-import { Cell } from './cell';
+import { Cell, CellGrid } from './cell';
 import { CellState, DeadState } from './state.interface';
 
 export class Board {
-  constructor(public readonly grid: Cell[][]) {}
+  private readonly cells: Cell[][];
+
+  constructor(grid: Cell[][]) {
+    this.cells = grid.map(row => [...row]);
+  }
+
+  public get grid(): CellGrid {
+    return this.cells.map(row => [...row]);
+  }
 
   public get width(): number {
-    return this.grid[0]?.length ?? 0;
+    return this.cells[0]?.length ?? 0;
   }
 
   public get height(): number {
-    return this.grid.length;
+    return this.cells.length;
   }
 
   public static empty(rows: number, cols: number): Board {
@@ -21,13 +29,13 @@ export class Board {
 
   public getCell(row: number, col: number): Cell {
     this.assertWithinBounds(row, col);
-    return this.grid[row][col];
+    return this.cells[row][col];
   }
 
   public withCellState(row: number, col: number, state: CellState): Board {
     this.assertWithinBounds(row, col);
 
-    const nextGrid = this.grid.map((cells, rowIndex) =>
+    const nextGrid = this.cells.map((cells, rowIndex) =>
       rowIndex === row
         ? cells.map((cell, colIndex) =>
             colIndex === col ? new Cell(state) : cell
@@ -55,7 +63,7 @@ export class Board {
   }
 
   public nextGeneration(): Board {
-    const nextGrid = this.grid.map((cells, row) =>
+    const nextGrid = this.cells.map((cells, row) =>
       cells.map((cell, col) => cell.evolve(this.countLiveNeighbors(row, col)))
     );
 
@@ -63,7 +71,7 @@ export class Board {
   }
 
   private isAliveAt(row: number, col: number): boolean {
-    return this.isWithinBounds(row, col) && this.grid[row][col].isAlive();
+    return this.isWithinBounds(row, col) && this.cells[row][col].isAlive();
   }
 
   private isWithinBounds(row: number, col: number): boolean {

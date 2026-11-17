@@ -1,5 +1,5 @@
-import { Cell } from './cell';
+import { CellGrid } from './cell';
 
 export interface GridFormatter {
-  format(grid: Cell[][], generation: number): string;
+  format(grid: CellGrid, generation: number): string;
 }

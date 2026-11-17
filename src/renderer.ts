@@ -1,4 +1,4 @@
-import { Cell } from './cell';
+import { CellGrid } from './cell';
 import { AsciiGridFormatter } from './formatter';
 import { GridFormatter } from './formatter.interface';
 import { Renderer } from './renderer.interface';
@@ -19,7 +19,7 @@ export class TerminalRenderer implements Renderer {
     this.writer.write(HIDE_CURSOR_AND_CLEAR);
   }
 
-  public render(grid: Cell[][], generation: number): void {
+  public render(grid: CellGrid, generation: number): void {
     this.writer.write(CURSOR_HOME + this.formatter.format(grid, generation));
   }
 

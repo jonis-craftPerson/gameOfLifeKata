@@ -187,3 +187,29 @@ describe('Board.nextGeneration', () => {
     expect(next.getCell(1, 2).isAlive()).toBe(false);
   });
 });
+
+describe('Board grid encapsulation', () => {
+  it('does not expose the internal grid array', () => {
+    const board = Board.empty(2, 2);
+
+    expect(board.grid).not.toBe(board.grid);
+  });
+
+  it('ignores mutation of the returned grid', () => {
+    const board = Board.empty(2, 2);
+    const exposed = board.grid as Cell[][];
+
+    exposed[0][0] = new Cell(new AliveState());
+
+    expect(board.getCell(0, 0).isAlive()).toBe(false);
+  });
+
+  it('does not keep a reference to the array passed to the constructor', () => {
+    const cells = [[new Cell(new DeadState())]];
+    const board = new Board(cells);
+
+    cells[0][0] = new Cell(new AliveState());
+
+    expect(board.getCell(0, 0).isAlive()).toBe(false);
+  });
+});
